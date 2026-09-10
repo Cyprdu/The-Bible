@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plan de lecture de la Bible</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+  :root{
+    --ink:#1F2C3B;
+    --ink-soft:#3C4A5C;
+    --parchment:#F6F1E4;
+    --parchment-deep:#EDE5D2;
+    --paper:#FBF9F3;
+    --gold:#A9803F;
+    --gold-soft:#D9C398;
+    --line:#DCD2B8;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--parchment);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    line-height:1.5;
+    padding:56px 20px 90px;
+  }
+  .wrap{max-width:660px;margin:0 auto;}
+
+  .masthead{
+    text-align:center;
+    margin-bottom:40px;
+  }
+  .masthead .rule{
+    width:52px;height:1px;background:var(--gold);
+    margin:0 auto 18px;
+  }
+  .masthead h1{
+    font-family:'Lora',serif;
+    font-weight:500;
+    font-size:2rem;
+    letter-spacing:0.2px;
+    margin:0 0 10px;
+    color:var(--ink);
+  }
+  .masthead p{
+    margin:0;
+    color:var(--ink-soft);
+    font-size:0.98rem;
+    max-width:460px;
+    margin:0 auto;
+  }
+
+  .card{
+    background:var(--paper);
+    border:1px solid var(--line);
+    padding:44px 40px;
+  }
+
+  fieldset{
+    border:0;
+    padding:0;
+    margin:0 0 34px;
+  }
+  fieldset:last-of-type{margin-bottom:0;}
+
+  legend{
+    display:flex;
+    align-items:baseline;
+    gap:12px;
+    font-family:'Lora',serif;
+    font-size:1.08rem;
+    color:var(--ink);
+    padding:0 0 14px;
+    margin-bottom:6px;
+    border-bottom:1px solid var(--line);
+    width:100%;
+  }
+  legend .num{
+    font-family:'Lora',serif;
+    font-style:italic;
+    color:var(--gold);
+    font-size:1.08rem;
+  }
+
+  input[type="text"], input[type="date"]{
+    width:100%;
+    font-family:'Inter',sans-serif;
+    font-size:0.98rem;
+    color:var(--ink);
+    background:var(--paper);
+    border:none;
+    border-bottom:1px solid var(--ink-soft);
+    padding:10px 2px;
+    outline:none;
+    transition:border-color .15s ease;
+  }
+  input[type="text"]:focus, input[type="date"]:focus{
+    border-bottom-color:var(--gold);
+  }
+
+  .option{
+    display:flex;
+    align-items:flex-start;
+    gap:12px;
+    padding:11px 4px;
+    border-bottom:1px solid var(--line);
+    cursor:pointer;
+  }
+  .option:last-child{border-bottom:none;}
+  .option input{
+    margin-top:4px;
+    accent-color:var(--gold);
+    flex-shrink:0;
+  }
+  .option .label-main{
+    font-size:0.97rem;
+    color:var(--ink);
+  }
+  .option .label-sub{
+    display:block;
+    font-size:0.84rem;
+    color:var(--ink-soft);
+    margin-top:2px;
+  }
+
+  .duration-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:0;
+  }
+  .duration-grid .option{
+    border-right:1px solid var(--line);
+  }
+  .duration-grid .option:nth-child(2n){border-right:none;}
+  .duration-grid .option:nth-child(-n+2){border-top:1px solid var(--line);}
+
+  button.submit{
+    width:100%;
+    background:var(--ink);
+    color:var(--parchment);
+    border:none;
+    font-family:'Inter',sans-serif;
+    font-weight:500;
+    font-size:0.98rem;
+    padding:15px 20px;
+    cursor:pointer;
+    letter-spacing:0.2px;
+    transition:background .15s ease;
+  }
+  button.submit:hover{background:#152130;}
+
+  .error-msg{
+    color:#8A3B2E;
+    font-size:0.86rem;
+    margin-top:10px;
+    display:none;
+  }
+
+  /* Result state */
+  #result{display:none;}
+  .result-header{
+    text-align:center;
+    margin-bottom:28px;
+  }
+  .result-header .eyebrow-rule{
+    width:52px;height:1px;background:var(--gold);margin:0 auto 18px;
+  }
+  .result-header h2{
+    font-family:'Lora',serif;
+    font-weight:500;
+    font-size:1.6rem;
+    margin:0 0 8px;
+  }
+  .result-header p{
+    color:var(--ink-soft);
+    margin:0;
+    font-size:0.95rem;
+  }
+
+  .stat-row{
+    display:flex;
+    justify-content:space-between;
+    padding:16px 0;
+    border-top:1px solid var(--line);
+  }
+  .stat-row:last-of-type{border-bottom:1px solid var(--line);margin-bottom:28px;}
+  .stat-row .k{color:var(--ink-soft);font-size:0.9rem;}
+  .stat-row .v{font-family:'Lora',serif;font-size:1rem;color:var(--ink);}
+
+  table.preview{
+    width:100%;
+    border-collapse:collapse;
+    margin-bottom:30px;
+    font-size:0.9rem;
+  }
+  table.preview th{
+    text-align:left;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:0.78rem;
+    color:var(--ink-soft);
+    padding:0 0 10px;
+    border-bottom:1px solid var(--ink-soft);
+  }
+  table.preview td{
+    padding:9px 0;
+    border-bottom:1px solid var(--line);
+    color:var(--ink);
+  }
+  table.preview td.date-col{color:var(--ink-soft);width:34%;font-variant-numeric:tabular-nums;}
+  table.preview tr:last-child td{border-bottom:none;}
+  .preview-note{
+    font-size:0.82rem;
+    color:var(--ink-soft);
+    font-style:italic;
+    margin:-16px 0 30px;
+  }
+
+  button.download{
+    width:100%;
+    background:var(--gold);
+    color:#fff;
+    border:none;
+    font-family:'Inter',sans-serif;
+    font-weight:500;
+    font-size:0.98rem;
+    padding:15px 20px;
+    cursor:pointer;
+    margin-bottom:12px;
+  }
+  button.download:hover{background:#8F6A31;}
+
+  button.restart{
+    width:100%;
+    background:transparent;
+    color:var(--ink-soft);
+    border:1px solid var(--line);
+    font-family:'Inter',sans-serif;
+    font-size:0.9rem;
+    padding:12px 20px;
+    cursor:pointer;
+  }
+  button.restart:hover{border-color:var(--ink-soft);color:var(--ink);}
+
+  @media (max-width:520px){
+    .card{padding:32px 22px;}
+    .duration-grid{grid-template-columns:1fr;}
+    .duration-grid .option{border-right:none;}
+    .duration-grid .option:nth-child(-n+2){border-top:none;}
+    .duration-grid .option:not(:first-child){border-top:1px solid var(--line);}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <div class="rule"></div>
+    <h1>Votre plan de lecture</h1>
+    <p>Quatre questions, puis un parcours de lecture de la Bible entièrement adapté à votre rythme.</p>
+  </div>
+
+  <div class="card" id="formCard">
+    <form id="planForm">
+
+      <fieldset>
+        <legend><span class="num">1</span> Quel est votre prénom&nbsp;?</legend>
+        <input type="text" id="firstName" placeholder="Votre prénom" required>
+      </fieldset>
+
+      <fieldset>
+        <legend><span class="num">2</span> Sur combien de temps souhaitez-vous lire la Bible&nbsp;?</legend>
+        <div class="duration-grid">
+          <label class="option"><input type="radio" name="duration" value="3" required><span class="label-main">3 mois</span></label>
+          <label class="option"><input type="radio" name="duration" value="6"><span class="label-main">6 mois</span></label>
+          <label class="option"><input type="radio" name="duration" value="12"><span class="label-main">1 an</span></label>
+          <label class="option"><input type="radio" name="duration" value="24"><span class="label-main">2 ans</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend><span class="num">3</span> Avez-vous déjà lu la Bible&nbsp;?</legend>
+        <label class="option">
+          <input type="radio" name="level" value="1" required>
+          <span><span class="label-main">Oui, je l'ai déjà lue en entier</span></span>
+        </label>
+        <label class="option">
+          <input type="radio" name="level" value="2">
+          <span><span class="label-main">Je la lis très régulièrement</span></span>
+        </label>
+        <label class="option">
+          <input type="radio" name="level" value="3">
+          <span><span class="label-main">Je la lis de temps en temps, mais je la connais plutôt bien</span></span>
+        </label>
+        <label class="option">
+          <input type="radio" name="level" value="4">
+          <span><span class="label-main">Seulement le dimanche à la messe, de temps en temps</span></span>
+        </label>
+        <label class="option">
+          <input type="radio" name="level" value="5">
+          <span><span class="label-main">Jamais</span></span>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend><span class="num">4</span> Quand souhaitez-vous commencer&nbsp;?</legend>
+        <input type="date" id="startDate" required>
+      </fieldset>
+
+      <button type="submit" class="submit">Générer mon plan de lecture</button>
+      <p class="error-msg" id="errorMsg">Merci de répondre à toutes les questions avant de continuer.</p>
+    </form>
+  </div>
+
+  <div class="card" id="result">
+    <div class="result-header">
+      <div class="eyebrow-rule"></div>
+      <h2 id="resultTitle">Votre plan est prêt</h2>
+      <p id="resultSubtitle"></p>
+    </div>
+
+    <div class="stat-row"><span class="k">Durée choisie</span><span class="v" id="statDuration"></span></div>
+    <div class="stat-row"><span class="k">Date de début</span><span class="v" id="statStart"></span></div>
+    <div class="stat-row"><span class="k">Date de fin estimée</span><span class="v" id="statEnd"></span></div>
+
+    <table class="preview">
+      <thead><tr><th>Date</th><th>Lecture</th></tr></thead>
+      <tbody id="previewBody"></tbody>
+    </table>
+    <p class="preview-note">Aperçu des premiers jours — le plan complet figure dans le PDF.</p>
+
+    <button class="download" id="downloadBtn">Télécharger le PDF</button>
+    <button class="restart" id="restartBtn">Recommencer</button>
+  </div>
+
+</div>
+
+<script>
+// ---------------------------------------------------------------
+// 1. Les 365 lectures du plan annuel, dans leur ordre d'origine
+// ---------------------------------------------------------------
+const READINGS = [
+"Genèse 1-3","Genèse 4-7","Genèse 8-11","Genèse 12-14","Genèse 15-17","Genèse 18-20","Genèse 21-23","Genèse 24-25","Genèse 26-28","Genèse 29-30",
+"Genèse 31-32","Genèse 33-35","Genèse 36-38","Genèse 39-41","Genèse 42-43","Genèse 44-46","Genèse 47-50","Exode 1-3","Exode 4-7","Exode 8-9",
+"Exode 10-12","Exode 13-15","Exode 16-18","Exode 19-21","Exode 22-24","Exode 25-27","Exode 28-29","Exode 30-32","Exode 33-35","Exode 36-38",
+"Exode 39-40","Matthieu 1-4","Matthieu 5-7","Matthieu 8-10","Matthieu 11-12","Matthieu 13-14","Matthieu 15-17","Matthieu 18-20","Matthieu 21-22","Matthieu 23-24",
+"Matthieu 25-26","Matthieu 27-28","Marc 1-3","Marc 4-5","Marc 6-7","Marc 8-9","Marc 10-11","Marc 12-13","Marc 14-16","Luc 1-2",
+"Luc 3-4","Luc 5-6","Luc 7-8","Luc 9-10","Luc 11-12","Luc 13-15","Luc 16-18","Luc 19-21","Luc 22-24","Actes 1-2",
+"Actes 3-5","Actes 6-7","Actes 8-9","Actes 10-12","Actes 13-14","Actes 15-16","Actes 17-19","Actes 20-21","Actes 22-24","Actes 25-26",
+"Actes 27-28","Galates","1 Thessaloniciens","2 Thessaloniciens","1 Corinthiens 1-4","1 Corinthiens 5-8","1 Corinthiens 9-12","1 Corinthiens 13-16","2 Corinthiens 1-4","2 Corinthiens 5-9",
+"2 Corinthiens 10-13","Romains 1-3","Romains 4-7","Romains 8-10","Romains 11-13","Romains 14-16","Ephésiens","Colossiens","Philémon","Philippiens",
+"1 Timothée","2 Timothée","Tite","Hébreux 1-5","Hébreux 6-9","Hébreux 10-11","Hébreux 12-13","Jacques","1 Pierre","2 Pierre",
+"1 Jean","2 Jean, 3 Jean, Jude","Josué 1-3","Josué 4-6","Josué 7-8","Josué 9-10","Josué 11-13","Josué 14-16","Josué 17-19","Josué 20-22",
+"Josué 23-24","Juges 1-3","Juges 4-5","Juges 6-7","Juges 8-9","Juges 10-11","Juges 12-14","Juges 15-17","Juges 18-19","Juges 20-21",
+"Ruth","1 Samuel 1-3","1 Samuel 4-6","1 Samuel 7-9","1 Samuel 10-12","1 Samuel 13-14","1 Samuel 15-16","1 Samuel 17-18","1 Samuel 19-20","1 Samuel 21-23",
+"1 Samuel 24-25","1 Samuel 26-28","1 Samuel 29-31","2 Samuel 1-3","2 Samuel 4-7","2 Samuel 8-11","2 Samuel 12-13","2 Samuel 14-15","2 Samuel 16-17","2 Samuel 18-19",
+"2 Samuel 20-22","2 Samuel 23-24","1 Rois 1-2","1 Rois 3-5","1 Rois 6-7","1 Rois 8","1 Rois 9-10","1 Rois 11-12","1 Rois 13-14","1 Rois 15-16",
+"1 Rois 17-18","1 Rois 19-20","1 Rois 21-22","2 Rois 1-3","2 Rois 4-5","2 Rois 6-7","2 Rois 8-9","2 Rois 10-12","2 Rois 13-15","2 Rois 16-17",
+"2 Rois 18-19","2 Rois 20-22","2 Rois 23-25","1 Chroniques 1-2","1 Chroniques 3-5","1 Chroniques 6-7","1 Chroniques 8-10","1 Chroniques 11-12","1 Chroniques 13-16","1 Chroniques 17-20",
+"1 Chroniques 21-23","1 Chroniques 24-26","1 Chroniques 27-29","2 Chroniques 1-4","2 Chroniques 5-7","2 Chroniques 8-10","2 Chroniques 11-14","2 Chroniques 15-18","2 Chroniques 19-21","2 Chroniques 22-24",
+"2 Chroniques 25-27","2 Chroniques 28-29","2 Chroniques 30-32","2 Chroniques 33-34","2 Chroniques 35-36","Esdras 1-3","Esdras 4-6","Esdras 7-8","Esdras 9-10","Néhémie 1-3",
+"Néhémie 4-6","Néhémie 7-8","Néhémie 9-11","Néhémie 12-13","Esther 1-5","Esther 6-10","Job 1-3","Job 4-7","Job 8-10","Job 11-14",
+"Job 15-18","Job 19-22","Job 23-28","Job 29-33","Job 34-37","Job 38-42","Psaumes 1-9","Psaumes 10-18","Psaumes 19-26","Psaumes 27-34",
+"Psaumes 35-40","Psaumes 41-48","Psaumes 49-55","Psaumes 56-63","Psaumes 64-69","Psaumes 70-75","Lévitique 1-3","Lévitique 4-6","Lévitique 7-8","Lévitique 9-11",
+"Lévitique 12-13","Psaumes 76-79","Psaumes 80-86","Lévitique 14-15","Lévitique 16-18","Lévitique 19-21","Lévitique 22-23","Lévitique 24-25","Psaumes 87-91","Psaumes 92-101",
+"Lévitique 26-27","Nombres 1-2","Nombres 3-4","Nombres 5-6","Nombres 7","Psaumes 102-105","Psaumes 106-109","Nombres 8-10","Nombres 11-13","Nombres 14-15",
+"Nombres 16-17","Nombres 18-20","Psaumes 110-118","Psaumes 119","Nombres 21-22","Nombres 23-25","Nombres 26-27","Nombres 28-29","Nombres 30-31","Psaumes 120-134",
+"Psaumes 135-142","Nombres 32-33","Nombres 34-36","Deutéronome 1-2","Deutéronome 3-4","Deutéronome 5-7","Psaumes 143-150","Proverbes 1-4","Deutéronome 8-10","Deutéronome 11-12",
+"Deutéronome 13-15","Deutéronome 16-18","Deutéronome 19-21","Proverbes 5-9","Proverbes 10-13","Deutéronome 22-24","Deutéronome 25-27","Deutéronome 28","Deutéronome 29-31","Deutéronome 32-34",
+"Proverbes 14-17","Proverbes 18-21","Proverbes 22-25","Proverbes 26-28","Proverbes 29-31","Ecclésiaste 1-6","Ecclésiaste 7-12","Cantique des cantiques","Jérémie 1-3","Jérémie 4-5",
+"Jérémie 6-8","Jérémie 9-11","Jérémie 12-14","Jérémie 15-17","Jérémie 18-21","Jérémie 22-24","Jérémie 25-26","Jérémie 27-29","Jérémie 30-31","Jérémie 32-33",
+"Jérémie 34-36","Jérémie 37-39","Jérémie 40-42","Jérémie 43-45","Jérémie 46-48","Jérémie 49-50","Jérémie 51-52","Lamentations 1-2","Lamentations 3-5","Ezékiel 1-4",
+"Ezékiel 5-8","Ezékiel 9-12","Ezékiel 13-15","Ezékiel 16-17","Ezékiel 18-20","Ezékiel 21-22","Ezékiel 23-24","Ezékiel 25-27","Ezékiel 28-30","Ezékiel 31-33",
+"Ezékiel 34-36","Ezékiel 37-39","Ezékiel 40-41","Ezékiel 42-44","Ezékiel 45-46","Ezékiel 47-48","Daniel 1-2","Daniel 3-4","Daniel 5-7","Daniel 8-10",
+"Daniel 11-12","Osée 1-7","Osée 8-14","Joël","Amos 1-4","Amos 5-9","Abdias & Jonas","Michée","Nahum & Habakuk","Sophonie & Aggée",
+"Zacharie 1-5","Zacharie 6-10","Zacharie 11-14","Malachie","Esaïe 1-3","Esaïe 4-7","Esaïe 8-10","Esaïe 11-14","Esaïe 15-20","Esaïe 21-24",
+"Esaïe 25-28","Esaïe 29-31","Esaïe 32-35","Esaïe 36-38","Esaïe 39-42","Esaïe 43-45","Esaïe 46-49","Esaïe 50-53","Esaïe 54-58","Esaïe 59-62",
+"Esaïe 63-66","Jean 1-3","Jean 4-5","Jean 6-7","Jean 8-9","Jean 10-11","Jean 12-13","Jean 14-16","Jean 17-18","Jean 19-21",
+"Apocalypse 1-4","Apocalypse 5-9","Apocalypse 10-13","Apocalypse 14-17","Apocalypse 18-22"
+];
+
+const DURATION_LABELS = {"3":"3 mois","6":"6 mois","12":"1 an","24":"2 ans"};
+const MONTHS_FR = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+
+function formatDateFR(d){
+  return d.getDate() + " " + MONTHS_FR[d.getMonth()] + " " + d.getFullYear();
+}
+
+function addDays(date, days){
+  const d = new Date(date.getTime());
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+// Builds the list of {date, reading} entries for the chosen duration & start date
+function buildPlan(durationMonths, startDate){
+  const totalDays = Math.round(durationMonths * 30.44); // mois -> jours calendaires approximatifs
+  const n = READINGS.length; // 365
+  const entries = [];
+
+  if (totalDays <= n){
+    // On condense : plusieurs lectures regroupées sur un même jour
+    const base = Math.floor(n / totalDays);
+    const remainder = n % totalDays;
+    let idx = 0;
+    let dayCount = 0;
+    while (idx < n){
+      const itemsToday = dayCount < remainder ? base + 1 : base;
+      const chunk = READINGS.slice(idx, idx + itemsToday);
+      entries.push({ date: addDays(startDate, dayCount), reading: chunk.join(" ; ") });
+      idx += itemsToday;
+      dayCount++;
+    }
+  } else {
+    // On étale : le rythme ralentit, chaque lecture est espacée sur plusieurs jours
+    const step = totalDays / n;
+    for (let i = 0; i < n; i++){
+      const dayOffset = Math.round(i * step);
+      entries.push({ date: addDays(startDate, dayOffset), reading: READINGS[i] });
+    }
+  }
+  return entries;
+}
+
+const introText = "Chaque ligne de votre plan indique un livre de la Bible suivi d'un ou plusieurs numéros de chapitre, par exemple « Genèse 1-3 », qui signifie le livre de la Genèse, du chapitre 1 au chapitre 3. Pour retrouver un livre, ouvrez la table des matières au tout début de votre Bible : elle indique la page de départ de chaque livre. Une fois sur la bonne page, les grands numéros imprimés en haut ou en marge du texte correspondent aux chapitres, et les petits numéros dans le texte correspondent aux versets. Si vous préférez une application ou un site (comme YouVersion ou Bible.info), il suffit de saisir la référence, par exemple « Genèse 1 », dans la barre de recherche.";
+
+let currentPlan = null;
+let currentMeta = null;
+
+document.getElementById("planForm").addEventListener("submit", function(e){
+  e.preventDefault();
+  const firstName = document.getElementById("firstName").value.trim();
+  const durationEl = document.querySelector('input[name="duration"]:checked');
+  const levelEl = document.querySelector('input[name="level"]:checked');
+  const startDateVal = document.getElementById("startDate").value;
+
+  if (!firstName || !durationEl || !levelEl || !startDateVal){
+    document.getElementById("errorMsg").style.display = "block";
+    return;
+  }
+  document.getElementById("errorMsg").style.display = "none";
+
+  const [y,m,d] = startDateVal.split("-").map(Number);
+  const startDate = new Date(y, m-1, d);
+  const durationMonths = Number(durationEl.value);
+  const level = levelEl.value;
+  const durationLabel = DURATION_LABELS[durationEl.value];
+
+  const plan = buildPlan(durationMonths, startDate);
+  currentPlan = plan;
+  currentMeta = { firstName, durationLabel, level, startDate };
+
+  document.getElementById("resultTitle").textContent = "Plan de lecture sur " + durationLabel + " pour " + firstName;
+  document.getElementById("resultSubtitle").textContent = plan.length + " étapes de lecture au total.";
+  document.getElementById("statDuration").textContent = durationLabel;
+  document.getElementById("statStart").textContent = formatDateFR(plan[0].date);
+  document.getElementById("statEnd").textContent = formatDateFR(plan[plan.length-1].date);
+
+  const tbody = document.getElementById("previewBody");
+  tbody.innerHTML = "";
+  plan.slice(0, 10).forEach(entry => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = "<td class='date-col'>" + formatDateFR(entry.date) + "</td><td>" + entry.reading + "</td>";
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById("formCard").style.display = "none";
+  document.getElementById("result").style.display = "block";
+  window.scrollTo({top:0, behavior:"smooth"});
+});
+
+document.getElementById("restartBtn").addEventListener("click", function(){
+  document.getElementById("result").style.display = "none";
+  document.getElementById("formCard").style.display = "block";
+  document.getElementById("planForm").reset();
+  window.scrollTo({top:0, behavior:"smooth"});
+});
+
+document.getElementById("downloadBtn").addEventListener("click", function(){
+  generatePDF(currentPlan, currentMeta);
+});
+
+function generatePDF(plan, meta){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const ink = [31, 44, 59];
+  const gold = [169, 128, 63];
+  const inkSoft = [90, 102, 117];
+
+  const needsIntro = (meta.level === "4" || meta.level === "5");
+
+  // --- En-tête ---
+  doc.setFillColor(ink[0], ink[1], ink[2]);
+  doc.rect(0, 0, pageWidth, 108, "F");
+
+  doc.setTextColor(255,255,255);
+  doc.setFont("times", "bold");
+  doc.setFontSize(20);
+  const title = "Plan de lecture sur " + meta.durationLabel + " pour " + meta.firstName;
+  doc.text(title, pageWidth/2, 52, { align: "center", maxWidth: pageWidth - 100 });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10.5);
+  doc.setTextColor(230,225,210);
+  const sub = "Du " + formatDateFR(plan[0].date) + " au " + formatDateFR(plan[plan.length-1].date) + "  —  " + plan.length + " étapes de lecture";
+  doc.text(sub, pageWidth/2, 78, { align: "center" });
+
+  let cursorY = 108 + 34;
+
+  // --- Introduction (si niveau 4 ou 5) ---
+  if (needsIntro){
+    doc.setFont("times", "italic");
+    doc.setFontSize(11.5);
+    doc.setTextColor(ink[0], ink[1], ink[2]);
+    doc.text("Comment retrouver un passage dans votre Bible", 40, cursorY);
+    cursorY += 16;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9.7);
+    doc.setTextColor(inkSoft[0], inkSoft[1], inkSoft[2]);
+    const lines = doc.splitTextToSize(introText, pageWidth - 80);
+    doc.text(lines, 40, cursorY);
+    cursorY += lines.length * 13 + 18;
+
+    doc.setDrawColor(217, 195, 152);
+    doc.setLineWidth(0.75);
+    doc.line(40, cursorY, pageWidth - 40, cursorY);
+    cursorY += 22;
+  }
+
+  // --- Tableau ---
+  const rows = plan.map(entry => [formatDateFR(entry.date), entry.reading]);
+
+  doc.autoTable({
+    startY: cursorY,
+    head: [["Date", "Lecture"]],
+    body: rows,
+    theme: "plain",
+    margin: { left: 40, right: 40 },
+    styles: {
+      font: "helvetica",
+      fontSize: 9.8,
+      textColor: ink,
+      cellPadding: { top: 6, bottom: 6, left: 4, right: 4 },
+      lineColor: [220, 210, 184],
+      lineWidth: 0.4,
+    },
+    headStyles: {
+      fillColor: ink,
+      textColor: [255,255,255],
+      fontStyle: "bold",
+      fontSize: 9.5,
+      halign: "left",
+    },
+    columnStyles: {
+      0: { cellWidth: 130, textColor: inkSoft },
+      1: { cellWidth: "auto" },
+    },
+    alternateRowStyles: { fillColor: [246, 241, 228] },
+    didDrawPage: function(data){
+      const pageCount = doc.internal.getNumberOfPages();
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(inkSoft[0], inkSoft[1], inkSoft[2]);
+      doc.text(
+        "Plan de lecture — " + meta.firstName,
+        40,
+        doc.internal.pageSize.getHeight() - 24
+      );
+      doc.text(
+        "Page " + data.pageNumber,
+        pageWidth - 40,
+        doc.internal.pageSize.getHeight() - 24,
+        { align: "right" }
+      );
+    }
+  });
+
+  const fileName = "plan-lecture-bible-" + meta.firstName.toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".pdf";
+  doc.save(fileName);
+}
+</script>
+</body>
+</html>
