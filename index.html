@@ -396,6 +396,35 @@ function addDays(date, days){
   return d;
 }
 
+// Découpe une référence en {book, start, end} quand elle se termine par un ou deux
+// numéros de chapitre (ex: "Genèse 1-3" -> book:"Genèse", start:1, end:3).
+// Renvoie book:null pour les références sans chapitre (ex: "Ruth", "Galates").
+function parseEntry(str){
+  const m = str.match(/^(.*[^\d\s])\s+(\d+)(?:-(\d+))?$/);
+  if (!m) return { raw: str, book: null, start: null, end: null };
+  return { raw: str, book: m[1], start: parseInt(m[2], 10), end: m[3] ? parseInt(m[3], 10) : parseInt(m[2], 10) };
+}
+
+// Regroupe une liste de lectures condensées sur un même jour : les entrées
+// consécutives d'un même livre sont fusionnées en une seule plage de chapitres
+// (ex: ["Genèse 1-3","Genèse 4-7","Genèse 8-11"] -> "Genèse 1-11").
+function mergeChunk(items){
+  const groups = [];
+  items.forEach(str => {
+    const parsed = parseEntry(str);
+    const last = groups[groups.length - 1];
+    if (parsed.book !== null && last && last.book === parsed.book){
+      last.end = parsed.end;
+    } else {
+      groups.push(parsed);
+    }
+  });
+  return groups.map(g => {
+    if (g.book === null) return g.raw;
+    return g.start === g.end ? (g.book + " " + g.start) : (g.book + " " + g.start + "-" + g.end);
+  }).join(" ; ");
+}
+
 // Builds the list of {date, reading} entries for the chosen duration & start date
 function buildPlan(durationMonths, startDate){
   const totalDays = Math.round(durationMonths * 30.44); // mois -> jours calendaires approximatifs
@@ -411,7 +440,7 @@ function buildPlan(durationMonths, startDate){
     while (idx < n){
       const itemsToday = dayCount < remainder ? base + 1 : base;
       const chunk = READINGS.slice(idx, idx + itemsToday);
-      entries.push({ date: addDays(startDate, dayCount), reading: chunk.join(" ; ") });
+      entries.push({ date: addDays(startDate, dayCount), reading: mergeChunk(chunk) });
       idx += itemsToday;
       dayCount++;
     }
